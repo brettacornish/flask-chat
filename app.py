@@ -6,26 +6,26 @@ app.config["SECRET_KEY"] = "dev-secret-key"
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# normal webpage route
+#----------- ROUTING EVENTS -----------
+
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# when a browser connects
+#----------- SOCKET EVENTS -----------
+
 @socketio.on("connect")
 def handle_connect():
     print("Client connected:", request.sid)
     emit("server_message", {"msg": "Connected to server"})
 
 
-# when a browser disconnects
 @socketio.on("disconnect")
 def handle_disconnect():
     print("Client disconnected:", request.sid)
 
 
-# when client sends a chat message
 @socketio.on("send_message")
 def handle_send_message(data):
     """
