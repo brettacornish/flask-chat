@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin
+from flask_login import LoginManager, UserMixin, login_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
@@ -41,8 +41,31 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if not username or not password:
+            flash("ONE OR MORE FIELDS MISSING")
+            return redirect(url_for("login"))
+
+        user_check = User.query.filter_by(username=username).first()
+
+        if not user_check or not check_password_hash(user_check.password_hash, password):
+            flash("INVALID CREDENTIALS")
+            return redirect(url_for("login"))
+        
+        login_user(user_check)
+        return redirect(url_for("index"))
+
     return render_template("login.html")
 
 
