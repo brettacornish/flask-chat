@@ -4,6 +4,11 @@
     {% block title %}{% endblock %}
 </head>
 <body>
+{% with flashes = get_flashed_messages() %}
+{% for flash in flashes %}
+<p>{{ flash }}</p>
+{% endfor %}
+{% endwith %}
 
 {% block content %}{% endblock %}
 

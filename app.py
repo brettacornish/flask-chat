@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin
@@ -25,6 +25,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(32), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -39,6 +40,40 @@ with app.app_context():
 def index():
     return render_template("index.html")
 
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    return render_template("login.html")
+
+
+@app.route("/create_account", methods=["GET", "POST"])
+def create_account():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+
+        if not username or not password or not confirm_password:
+            flash("ONE OR MORE FIELDS MISSING")
+            return redirect(url_for("create_account"))
+
+        elif password != confirm_password:
+            flash("PASSWORDS DO NOT MATCH")
+            return redirect(url_for("create_account"))
+        
+        user_check = User.query.filter_by(username=username).first()
+        if user_check:
+            flash("USERNAME ALREADY TAKEN")
+            return redirect(url_for("create_account"))
+        
+        new_user = User(username = username, password_hash = generate_password_hash(password))
+        
+        db.session.add(new_user)
+        db.session.commit()
+        flash("ACCOUNT CREATED SUCCESSFULLY. PLEASE LOGIN.")
+        return redirect(url_for("login"))
+
+    return render_template("create_account.html")
 
 #----------- SOCKET EVENTS -----------
 
