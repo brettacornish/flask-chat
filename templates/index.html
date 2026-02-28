@@ -4,14 +4,32 @@
 
 {% block content %}
 
-<h2>Flask Chat</h2>
+{% if current_user.channels %}
 
-<ul id="messages"></ul>
+    <h2>Channel Select</h2>
 
-<input id="messageInput" placeholder="type message">
-<button onclick="sendMessage()">Send</button>
+    {% for channel in current_user.channels %}
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="{{ url_for('static', filename='chat.js') }}"></script>
+        <a href="/channel/{{ channel.id }}">
+        <button>{{ channel.name }}</button>
+        </a>
+
+        <br>
+        <br>
+
+    {% endfor %}
+
+{% endif %}
+
+<h2>Create a Channel</h2>
+
+<form method="POST">
+
+    <input type="text" name="channel_name" placeholder="Channel Name" maxlength="32"><br>
+
+    <input type="submit" value="Submit">
+
+</form>
+
 
 {% endblock %}

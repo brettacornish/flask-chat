@@ -1,0 +1,15 @@
+{% block title %}<title>SocketIO Chat</title>{% endblock %}
+
+{% block content %}
+
+<h2>Flask Chat</h2>
+
+<ul id="messages"></ul>
+
+<input id="messageInput" placeholder="type message">
+<button onclick="sendMessage()">Send</button>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='chat.js') }}"></script>
+
+{% endblock %}

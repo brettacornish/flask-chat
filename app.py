@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for, abort
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -67,10 +67,40 @@ migrate = Migrate(app, db)
 
 #----------- ROUTING EVENTS -----------
 
-@app.route("/", methods=["GET"])
+@app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
+    if request.method == "POST":
+        channel_name = request.form.get("channel_name")
+        
+        if not channel_name:
+            flash("ONE OR MORE FIELDS MISSING")
+            return redirect(url_for("index"))
+        
+        if len(channel_name) > 32:
+            flash("CHANNEL NAME TOO LONG")
+            return redirect(url_for("index"))
+        
+        new_channel = Channel(name=channel_name, owner_id=current_user.id )
+        new_channel.users.append(current_user)
+        
+        db.session.add(new_channel)
+        db.session.commit()
+
+        flash("CHANNEL CREATED SUCCESSFULLY.")
+        return redirect(url_for("index"))
+
     return render_template("index.html")
+
+@app.route("/channel/<int:channel_id>", methods=["GET"])
+@login_required
+def channel(channel_id):
+    channel = Channel.query.get(channel_id)
+
+    if not channel:
+        abort(404)
+
+    return render_template("channel.html")
 
 
 @app.route("/logout", methods=["GET"])
