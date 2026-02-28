@@ -20,19 +20,41 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 #----------- DATABASE MODELS -----------
 
+user_channels = db.Table(
+    "user_channels",
+    db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
+    db.Column("channel_id", db.Integer, db.ForeignKey("channel.id"), primary_key=True),
+)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
     messages = db.relationship("Message", back_populates="user", cascade="all, delete-orphan")
+    channels = db.relationship("Channel", secondary=user_channels, back_populates="users")
+    owned_channels = db.relationship("Channel", back_populates="owner_user")
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    channel_id = db.Column(db.Integer, db.ForeignKey("channel.id"), nullable=False)
+
     user = db.relationship("User", back_populates="messages")
+    channel = db.relationship("Channel", back_populates="messages")
+
+class Channel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(32), unique=True, nullable=False)
+
+    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    owner_user = db.relationship("User", back_populates="owned_channels")
+    
+    users = db.relationship("User", secondary=user_channels, back_populates="channels")
+    messages = db.relationship("Message", back_populates="channel", cascade="all, delete-orphan")
+
 
 
 @login_manager.user_loader
