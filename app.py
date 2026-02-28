@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
@@ -25,6 +25,15 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(32), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
 
+    messages = db.relationship("Message", back_populates="user", cascade="all, delete-orphan")
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user = db.relationship("User", back_populates="messages")
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -36,12 +45,13 @@ with app.app_context():
 
 #----------- ROUTING EVENTS -----------
 
-@app.route("/")
+@app.route("/", methods=["GET"])
+@login_required
 def index():
     return render_template("index.html")
 
 
-@app.route("/logout", methods=["GET", "POST"])
+@app.route("/logout", methods=["GET"])
 def logout():
     logout_user()
     return redirect(url_for("login"))
