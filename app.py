@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
@@ -61,8 +62,7 @@ class Channel(db.Model):
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-with app.app_context():
-    db.create_all()
+migrate = Migrate(app, db)
 
 
 #----------- ROUTING EVENTS -----------
