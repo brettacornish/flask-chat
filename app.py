@@ -103,7 +103,10 @@ def channel(channel_id):
     if current_user not in channel.users:
         abort(403)
 
-    return render_template("channel.html", channel=channel)
+    messages = (Message.query.filter_by(channel_id=channel_id).order_by(Message.id.desc()).limit(50).all())
+    messages.reverse()
+
+    return render_template("channel.html", channel=channel, messages=messages)
 
 
 @app.route("/logout", methods=["GET"])
@@ -171,7 +174,6 @@ def handle_connect():
         disconnect()
         return
     print("Client connected:", request.sid)
-    #emit("server_message", {"username": current_user.username, "message": " Connected to server"},)
 
 
 @socketio.on("join_channel")
@@ -189,6 +191,7 @@ def handle_join_channel(data):
     join_room(room)
 
     emit("server_message", {"username": current_user.username, "message": f" joined channel {channel_id}"}, to=room)
+
 
 @socketio.on("disconnect")
 def handle_disconnect():

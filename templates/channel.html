@@ -4,7 +4,15 @@
 
 <h2>Flask Chat</h2>
 
-<ul id="messages"></ul>
+<ul id="messages">
+
+{% for message in messages %}
+
+<li>{{ message.user.username }} - {{ message.content }}</li>
+
+{% endfor %}
+
+</ul>
 
 <input id="messageInput" placeholder="type message">
 <button onclick="sendMessage()">Send</button>
