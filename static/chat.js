@@ -5,20 +5,23 @@ const input = document.getElementById("messageInput");
 
 socket.on("connect", () => {
     console.log("Connected to server");
+
+    socket.emit("join_channel", { channel: CHANNEL_ID });
 });
 
 socket.on("server_message", (data) => {
-    addMessage("[SERVER] " + data.msg);
+    addMessage(data);
 });
 
 socket.on("receive_message", (data) => {
-    addMessage(data.message);
+    addMessage(data);
 });
 
 function sendMessage() {
     const text = input.value;
 
     socket.emit("send_message", {
+        channel: CHANNEL_ID,
         message: text
     });
 
@@ -27,6 +30,6 @@ function sendMessage() {
 
 function addMessage(text) {
     const li = document.createElement("li");
-    li.textContent = text;
+    li.textContent = text.username + " - " + text.message;
     messages.appendChild(li);
 }

@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, abort
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_migrate import Migrate
@@ -99,8 +99,11 @@ def channel(channel_id):
 
     if not channel:
         abort(404)
+    
+    if current_user not in channel.users:
+        abort(403)
 
-    return render_template("channel.html")
+    return render_template("channel.html", channel=channel)
 
 
 @app.route("/logout", methods=["GET"])
@@ -164,9 +167,28 @@ def create_account():
 
 @socketio.on("connect")
 def handle_connect():
+    if not current_user.is_authenticated:
+        disconnect()
+        return
     print("Client connected:", request.sid)
-    emit("server_message", {"msg": "Connected to server"})
+    #emit("server_message", {"username": current_user.username, "message": " Connected to server"},)
 
+
+@socketio.on("join_channel")
+def handle_join_channel(data):
+    if not current_user.is_authenticated:
+        disconnect()
+        return
+    
+    channel_id = int(data.get("channel", 0))
+    authorized = Channel.query.filter(Channel.id == channel_id, Channel.users.any(id=current_user.id)).first()
+    if not authorized:
+        return
+
+    room = f"channel_{channel_id}"
+    join_room(room)
+
+    emit("server_message", {"username": current_user.username, "message": f" joined channel {channel_id}"}, to=room)
 
 @socketio.on("disconnect")
 def handle_disconnect():
@@ -175,15 +197,31 @@ def handle_disconnect():
 
 @socketio.on("send_message")
 def handle_send_message(data):
-    """
-    expected data:
-    { "message": "hello world" }
-    """
+    if not current_user.is_authenticated:
+        return
 
-    print("Message received:", data)
+    channel_id = int(data.get("channel", 0))
+    msg = (data.get("message") or "").strip()
+    if not channel_id or not msg:
+        return
 
-    # broadcast to everyone
-    emit("receive_message", data, broadcast=True)
+    room = f"channel_{channel_id}"
+
+    rooms_for_sid = socketio.server.rooms(request.sid)
+    if room not in rooms_for_sid:
+        print("Blocked send (not in room):", request.sid, room)
+        return
+
+    new_message = Message(content=msg, user_id=current_user.id, channel_id=channel_id)
+    db.session.add(new_message)
+    db.session.commit()
+
+    emit("receive_message", {
+        "id": new_message.id,
+        "channel": channel_id,
+        "username": current_user.username,
+        "message": new_message.content
+    }, to=room)
 
 
 if __name__ == "__main__":
