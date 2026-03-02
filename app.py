@@ -19,6 +19,13 @@ login_manager.login_view = "login"
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 #----------- DATABASE MODELS -----------
 
 user_channels = db.Table(
